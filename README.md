@@ -19,7 +19,7 @@ This project investigates **how ill-conditioning degrades ML performance** and e
 
 We have successfully completed **Phase 1** and **Phase 2** of the project, establishing a solid baseline.
 
-### ✅ Phase 1: Generating Ill-Conditioned Data
+###  Phase 1: Generating Ill-Conditioned Data
 
 **Objective**: Create a dataset with severe multicollinearity (`ρ > 0.95`) to artificially induce a high condition number in `XᵀX`.
 
@@ -39,7 +39,7 @@ We have successfully completed **Phase 1** and **Phase 2** of the project, estab
 
 ---
 
-### ✅ Phase 2: Vanilla SGD Baseline (Control Experiment)
+###  Phase 2: Vanilla SGD Baseline (Control Experiment)
 
 **Objective**: Train a simple 3-layer MLP on the ill-conditioned data using pure Vanilla SGD (no momentum, no adaptivity) to observe the "broken" behavior.
 
