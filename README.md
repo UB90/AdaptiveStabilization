@@ -32,6 +32,14 @@ All five phases of the project are complete: ill-conditioned data generation, th
 - Artificially made feature pairs highly correlated (e.g., `x₁ ≈ 0.95·x₀`).
 - Computed the Gram matrix `G = XᵀX` and its eigenvalue spectrum.
 
+**Governing Formula** — Condition Number:
+
+```
+κ(G) = λ_max(G) / λ_min(G)
+```
+
+where `λ_max` and `λ_min` are the largest and smallest eigenvalues of `G = XᵀX`. A well-conditioned matrix has `κ ≈ 1`; `κ ≫ 1` indicates near-singularity.
+
 **Key Results**:
 
 - **Condition Number**: `κ = 2.04 × 10⁴` (κ >> 1, severely ill-conditioned).
@@ -52,6 +60,14 @@ All five phases of the project are complete: ill-conditioned data generation, th
 - Loss: MSE (Mean Squared Error).
 - Epochs: 300.
 
+**Governing Formula** — Vanilla SGD Update Rule:
+
+```
+w_{t+1} = w_t − η · ∇L(w_t)
+```
+
+where `η` is a single, fixed scalar learning rate applied uniformly across all parameter directions. No correction term accounts for per-direction curvature, so steep and flat directions of the loss surface receive identical step sizes.
+
 **Key Results**:
 
 - Loss decreased very slowly: `0.6749 → 0.5198` over 300 epochs.
@@ -64,16 +80,45 @@ All five phases of the project are complete: ill-conditioned data generation, th
 
 **Objective**: Add `λI` to the Gram matrix to shift eigenvalues away from zero, reducing `κ` and smoothing the loss landscape.
 
+**Governing Formulas**:
+
+```
+Regularized Loss:   L_ridge(w) = L(w) + (λ/2)·‖w‖²
+
+Regularized Gram:   G' = XᵀX + λI
+
+Shifted Eigenvalues: λᵢ' = λᵢ + λ      for each i
+
+New Condition #:    κ' = (λ_max + λ) / (λ_min + λ)
+```
+
+Adding `λ` to every eigenvalue uniformly compresses the ratio between the largest and smallest eigenvalue, lowering `κ'` below the original `κ`. It does **not**, however, rescale individual gradient directions — it only shifts the spectrum.
+
 **Key Results**:
 
 - Learning rate: `0.001`.
 - Final MSE loss: `0.4812`.
 - Convergence: shifts eigenvalues to stabilize training, but convergence remains restricted relative to adaptive methods.
-- Effect on conditioning: `κ' = (λ_max + λ) / (λ_min + λ)`, smoothing loss contours without correcting step-scale disparities.
+- Effect on conditioning: smooths loss contours without correcting step-scale disparities.
 
 ### Phase 4: Adam Optimizer
 
 **Objective**: Apply per-parameter adaptive learning rates as a diagonal Hessian preconditioner.
+
+**Governing Formulas**:
+
+```
+First moment (mean):       m_t = β₁·m_{t−1} + (1−β₁)·g_t
+
+Second moment (variance):  v_t = β₂·v_{t−1} + (1−β₂)·g_t²
+
+Bias-corrected moments:    m̂_t = m_t / (1 − β₁ᵗ)
+                           v̂_t = v_t / (1 − β₂ᵗ)
+
+Parameter update:          w_{t+1} = w_t − η · m̂_t / (√v̂_t + ε)
+```
+
+Dividing each coordinate's step by `√v̂_t` (the root of its own running squared-gradient average) rescales every direction individually — large, frequently-updated gradients get smaller steps; small, infrequent gradients get larger steps. This acts as a dynamic **diagonal Hessian preconditioner**, directly neutralizing the ravine-scaling effect of high `κ`.
 
 **Key Results**:
 
@@ -84,6 +129,20 @@ All five phases of the project are complete: ill-conditioned data generation, th
 ### Phase 5: Batch Normalization
 
 **Objective**: Rescale activations to bound the Jacobian's singular values and permit higher learning rates.
+
+**Governing Formulas**:
+
+```
+Batch mean:         μ_B = (1/m) Σᵢ xᵢ
+
+Batch variance:     σ_B² = (1/m) Σᵢ (xᵢ − μ_B)²
+
+Normalize:          x̂ᵢ = (xᵢ − μ_B) / √(σ_B² + ε)
+
+Affine transform:   yᵢ = γ·x̂ᵢ + β
+```
+
+where `γ` and `β` are learnable scale/shift parameters. By centering and rescaling activations at every layer, BN bounds the singular values of each layer's Jacobian, which flattens the curvature of the loss surface and permits a larger stable learning rate `η`.
 
 **Key Results**:
 
@@ -111,6 +170,18 @@ The MLP network (10 → 64 → 64 → 1) was trained for 300 epochs under identi
 1. **Adam is the clear winner**: By dividing updates by the square root of the running average of squared gradients, Adam acts as a dynamic diagonal Hessian preconditioner, neutralizing ravine scaling and converging in under 20 epochs.
 2. **Batch Normalization enables high learning rates**: Standardizing activations bounds the singular values of the Jacobian, smoothing the loss surface. This allows scaling the learning rate up to `0.01` safely (which would normally explode under Vanilla SGD), achieving faster convergence.
 3. **Ridge Regularization stabilizes computation**: Adding L2 weight decay shifts eigenvalues (`κ' = (λ_max + λ) / (λ_min + λ)`), smoothing loss contours but not correcting step scale disparities.
+
+---
+
+## Formula Quick Reference
+
+| Technique | Core Formula |
+| :--- | :--- |
+| Condition Number | `κ(G) = λ_max(G) / λ_min(G)` |
+| Vanilla SGD | `w_{t+1} = w_t − η·∇L(w_t)` |
+| Ridge (L2) | `L_ridge(w) = L(w) + (λ/2)‖w‖²` , `κ' = (λ_max+λ)/(λ_min+λ)` |
+| Adam | `w_{t+1} = w_t − η·m̂_t / (√v̂_t + ε)` |
+| Batch Normalization | `x̂ᵢ = (xᵢ − μ_B) / √(σ_B² + ε)` , `yᵢ = γ·x̂ᵢ + β` |
 
 ---
 
