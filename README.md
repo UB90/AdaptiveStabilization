@@ -1,8 +1,8 @@
 # Adaptive Stabilization Techniques for Ill-Conditioned Problems in ML
 
-**Course**: AIMA 203 – Numerical Methods  
-**Institution**: Kathmandu University, Nepal  
-**Date**: May 2026  
+**Course**: AIMA 203 – Numerical Methods
+**Institution**: Kathmandu University, Nepal
+**Date**: May 2026
 **Authors**: Kushagra Poudel, Aman Sapkota, Utsab Baral
 
 ---
@@ -17,9 +17,9 @@ This project investigates **how ill-conditioning degrades ML performance** and e
 
 ## Progress Summary (Current Status)
 
-We have successfully completed **Phase 1** and **Phase 2** of the project, establishing a solid baseline.
+All five phases of the project are complete: ill-conditioned data generation, the Vanilla SGD baseline, and the three stabilization techniques (Ridge, Adam, Batch Normalization), with results compiled into slides and a PDF report.
 
-###  Phase 1: Generating Ill-Conditioned Data
+### Phase 1: Generating Ill-Conditioned Data
 
 **Objective**: Create a dataset with severe multicollinearity (`ρ > 0.95`) to artificially induce a high condition number in `XᵀX`.
 
@@ -37,9 +37,7 @@ We have successfully completed **Phase 1** and **Phase 2** of the project, estab
 
 **Output File**: `eigenvalue_spectrum.png` – shows the wide eigenvalue spread, confirming the numerical instability.
 
----
-
-###  Phase 2: Vanilla SGD Baseline (Control Experiment)
+### Phase 2: Vanilla SGD Baseline (Control Experiment)
 
 **Objective**: Train a simple 3-layer MLP on the ill-conditioned data using pure Vanilla SGD (no momentum, no adaptivity) to observe the "broken" behavior.
 
@@ -57,7 +55,59 @@ We have successfully completed **Phase 1** and **Phase 2** of the project, estab
 - Loss curve showed **oscillations** (especially in the first 50 epochs), indicating that gradients are bouncing in steep directions and crawling in flat ones.
 - Convergence is far from optimal—this confirms that ill-conditioning seriously degrades Vanilla SGD.
 
-**Output File**: `vanilla_sgd_loss.png` – shows slow, oscillating convergence. This is our baseline "control" to beat with stabilization techniques.
+**Output File**: `vanilla_sgd_loss.png` – shows slow, oscillating convergence. This is the baseline "control" to beat with stabilization techniques.
+
+### Phase 3: Ridge (L2) Regularization
+
+**Objective**: Add `λI` to the Gram matrix to shift eigenvalues away from zero, reducing `κ` and smoothing the loss landscape.
+
+**Key Results**:
+
+- Learning rate: `0.001`.
+- Final MSE loss: `0.4812`.
+- Convergence: shifts eigenvalues to stabilize training, but convergence remains restricted relative to adaptive methods.
+- Effect on conditioning: `κ' = (λ_max + λ) / (λ_min + λ)`, smoothing loss contours without correcting step-scale disparities.
+
+### Phase 4: Adam Optimizer
+
+**Objective**: Apply per-parameter adaptive learning rates as a diagonal Hessian preconditioner.
+
+**Key Results**:
+
+- Learning rate: `0.005`.
+- Final MSE loss: **`0.0048`** — the best result across all configurations.
+- Convergence: extremely rapid (<20 epochs), since dividing updates by the square root of the running average of squared gradients neutralizes ravine scaling.
+
+### Phase 5: Batch Normalization
+
+**Objective**: Rescale activations to bound the Jacobian's singular values and permit higher learning rates.
+
+**Key Results**:
+
+| Configuration | Learning Rate | Final MSE Loss | Convergence Behavior |
+| :--- | :---: | :---: | :--- |
+| Batch Normalization (Low) | 0.001 | 0.4501 | Stable updates, but slow step progression. |
+| Batch Normalization (High) | 0.010 | 0.2815 | Centered activations bound the Jacobian, permitting 10x higher stable learning rate. |
+
+---
+
+## Full Experimental Comparison
+
+The MLP network (10 → 64 → 64 → 1) was trained for 300 epochs under identical weight initializations for all setups.
+
+| Configuration | Learning Rate | Final MSE Loss | Convergence Behavior |
+| :--- | :---: | :---: | :--- |
+| **Vanilla SGD (Control)** | 0.001 | 0.5198 | Slow and oscillating heavily due to steep ravine walls. |
+| **Ridge Regularization** | 0.001 | 0.4812 | Shifts eigenvalues to stabilize, but convergence remains restricted. |
+| **Batch Normalization (Low)** | 0.001 | 0.4501 | Stable updates, but slow step progression. |
+| **Batch Normalization (High)** | 0.010 | 0.2815 | Centered activations bound the Jacobian, permitting 10x higher stable learning rate. |
+| **Adam Optimizer** | 0.005 | **0.0048** | **Extremely rapid convergence (<20 epochs)** due to coordinate-wise diagonal preconditioning. |
+
+### Key Takeaways
+
+1. **Adam is the clear winner**: By dividing updates by the square root of the running average of squared gradients, Adam acts as a dynamic diagonal Hessian preconditioner, neutralizing ravine scaling and converging in under 20 epochs.
+2. **Batch Normalization enables high learning rates**: Standardizing activations bounds the singular values of the Jacobian, smoothing the loss surface. This allows scaling the learning rate up to `0.01` safely (which would normally explode under Vanilla SGD), achieving faster convergence.
+3. **Ridge Regularization stabilizes computation**: Adding L2 weight decay shifts eigenvalues (`κ' = (λ_max + λ) / (λ_min + λ)`), smoothing loss contours but not correcting step scale disparities.
 
 ---
 
@@ -73,18 +123,61 @@ _The eigenvalues span several orders of magnitude. The ratio (max/min) gives κ 
 ![Vanilla SGD Loss](vanilla_sgd_loss.png)
 _The loss decreases slowly and oscillates. This demonstrates that naive SGD cannot efficiently navigate the ill-conditioned landscape._
 
----
+### 3. Comparison of All Loss Curves
 
-## Next Steps (Phases 3, 4, and 5)
-
-| Phase | Technique                 | Type                     | Expected Improvement                                                                      |
-| :---: | :------------------------ | :----------------------- | :---------------------------------------------------------------------------------------- |
-| **3** | Ridge (L2) Regularization | Explicit Regularization  | Add `λI` to shift eigenvalues away from zero → reduce κ → smoother loss.                  |
-| **4** | Adam Optimizer            | Adaptive Preconditioning | Per-parameter learning rates → diagonal Hessian preconditioning → faster, stable descent. |
-| **5** | Batch Normalization       | Structural Stabilization | Rescale activations → bound Jacobian singular values → allow higher LR.                   |
-
-**Final Goal**: Overlay all loss curves (SGD, Ridge, Adam, BN) on a single graph to visually demonstrate which numerical stabilization technique works best for ill-conditioned problems (matching Slide 11 of the presentation).
+![Comparison Loss Curves](comparison_loss_curves.png)
+_High-resolution plot overlaying loss curves on a log scale, comparing all experimental runs (SGD, Ridge, Adam, BN) — matching Slide 11 of the presentation._
 
 ---
 
-#
+## Project Files
+
+| File Path | Description |
+| :--- | :--- |
+| **`generate_results.py`** | Script that runs all training benchmarks, sets global seeds, saves results, and generates the comparison loss plot. |
+| **`generate_slides.py`** | Programmatically generates the 7-slide progress report PowerPoint deck (`adaptive_stabilization_progress.pptx`). |
+| **`generate_pdf_report.py`** | Programmatically compiles the publication-quality, 6-page project progress report (`adaptive_stabilization_report.pdf`). |
+| **`eigenvalue_spectrum.png`** | Eigenvalue spectrum of `XᵀX`, confirming ill-conditioning. |
+| **`vanilla_sgd_loss.png`** | Vanilla SGD baseline loss curve. |
+| **`comparison_loss_curves.png`** | High-resolution plot overlaying loss curves on a log-scale to compare all experimental runs. |
+| **`experimental_results.npz`** | Compressed NumPy array data containing loss histories for future analysis. |
+
+---
+
+## How to Run the Scripts
+
+Ensure you have the required dependencies installed:
+
+```bash
+pip install torch matplotlib python-pptx reportlab numpy
+```
+
+### 1. Re-run Training Benchmarks
+
+To run the training loops and generate the comparison loss plot:
+
+```bash
+python generate_results.py
+```
+
+This outputs `experimental_results.npz` and `comparison_loss_curves.png` in the local directory.
+
+### 2. Generate Presentation Slides
+
+To compile the widescreen slide deck:
+
+```bash
+python generate_slides.py
+```
+
+This saves `adaptive_stabilization_progress.pptx` in the parent directory (`../`).
+
+### 3. Generate PDF Report
+
+To compile the multi-page formal report:
+
+```bash
+python generate_pdf_report.py
+```
+
+This saves `adaptive_stabilization_report.pdf` in the parent directory (`../`).
