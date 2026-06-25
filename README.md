@@ -1,8 +1,11 @@
 # Adaptive Stabilization Techniques for Ill-Conditioned Problems in ML
 
 **Course**: AIMA 203 – Numerical Methods
+
 **Institution**: Kathmandu University, Nepal
+
 **Date**: May 2026
+
 **Authors**: Kushagra Poudel, Aman Sapkota, Utsab Baral
 
 ---
