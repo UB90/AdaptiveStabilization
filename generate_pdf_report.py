@@ -52,6 +52,7 @@ class NumberedCanvas(canvas.Canvas):
         self.restoreState()
 
 def build_pdf_report():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     pdf_filename = "/Users/kushagra/Desktop/Numerical Methods/adaptive_stabilization_report.pdf"
     
     # Page setup
@@ -278,7 +279,7 @@ def build_pdf_report():
     ))
     
     # Insert Figure 1
-    fig1_path = 'eigenvalue_spectrum.png'
+    fig1_path = os.path.join(BASE_DIR, 'eigenvalue_spectrum.png')
     if os.path.exists(fig1_path):
         story.append(Image(fig1_path, width=320, height=160))
         story.append(Paragraph("Figure 1: Log-scale eigenvalue spectrum of the generated ill-conditioned Gram matrix, demonstrating 4 orders of magnitude spread.", caption_style))
@@ -295,7 +296,7 @@ def build_pdf_report():
     story.append(Paragraph("• <b>Severe Oscillations:</b> The early loss curve (especially in the first 50 epochs) showed high-frequency oscillations, proving that the updates were bouncing off the ravine walls rather than traversing down the optimization valley.", bullet_style))
     
     # Insert Figure 2
-    fig2_path = 'vanilla_sgd_loss.png'
+    fig2_path = os.path.join(BASE_DIR, 'vanilla_sgd_loss.png')
     if os.path.exists(fig2_path):
         story.append(Image(fig2_path, width=320, height=160))
         story.append(Paragraph("Figure 2: Training loss curve under Vanilla SGD, showing oscillations and lack of convergence.", caption_style))
@@ -352,7 +353,7 @@ def build_pdf_report():
     ))
     
     # Insert Comparison Figure
-    fig3_path = 'comparison_loss_curves.png'
+    fig3_path = os.path.join(BASE_DIR, 'comparison_loss_curves.png')
     if os.path.exists(fig3_path):
         story.append(Image(fig3_path, width=360, height=216))
         story.append(Paragraph("Figure 3: Log-scale loss convergence curves comparison for all stabilization techniques.", caption_style))

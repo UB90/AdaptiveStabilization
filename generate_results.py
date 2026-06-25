@@ -1,3 +1,4 @@
+import os
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
@@ -5,6 +6,8 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
@@ -14,7 +17,7 @@ def set_seed(seed=42):
         torch.cuda.manual_seed_all(seed)
 
 # Load the ill‑conditioned data
-data = np.load('data_ill_conditioned.npz')
+data = np.load(os.path.join(BASE_DIR, 'data_ill_conditioned.npz'))
 X = data['X']
 y = data['y']
 kappa = data['kappa']
@@ -116,7 +119,7 @@ bn_losses_high = train_model(
 )
 
 # Save results for references
-np.savez('experimental_results.npz', 
+np.savez(os.path.join(BASE_DIR, 'experimental_results.npz'), 
          sgd=sgd_losses, 
          ridge=ridge_losses, 
          adam=adam_losses, 
@@ -153,7 +156,7 @@ plt.yscale('log') # Log scale is much better for ill-conditioned data convergenc
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.legend(frameon=True, facecolor='white', edgecolor='none', shadow=True, fontsize=10)
 
-plt.savefig('comparison_loss_curves.png', dpi=300)
+plt.savefig(os.path.join(BASE_DIR, 'comparison_loss_curves.png'), dpi=300)
 plt.close()
 
 print("Saved final comparison plot to 'comparison_loss_curves.png'")

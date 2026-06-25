@@ -11,6 +11,8 @@ def create_presentation():
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
     
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
     # ----------------------------------------------------
     # Design Constants
     # ----------------------------------------------------
@@ -267,7 +269,7 @@ def create_presentation():
     p3_sub.font.color.rgb = COLOR_CHARCOAL
 
     # Right Image
-    img_path = 'eigenvalue_spectrum.png'
+    img_path = os.path.join(BASE_DIR, 'eigenvalue_spectrum.png')
     if os.path.exists(img_path):
         slide3.shapes.add_picture(img_path, Inches(7.0), Inches(1.8), Inches(5.6), Inches(4.2))
 
@@ -326,7 +328,7 @@ def create_presentation():
     p3_sub.font.color.rgb = COLOR_CHARCOAL
 
     # Right Image
-    img_path = 'vanilla_sgd_loss.png'
+    img_path = os.path.join(BASE_DIR, 'vanilla_sgd_loss.png')
     if os.path.exists(img_path):
         slide4.shapes.add_picture(img_path, Inches(7.0), Inches(1.8), Inches(5.6), Inches(4.2))
 
@@ -479,7 +481,7 @@ def create_presentation():
     p3_sub.font.color.rgb = COLOR_CHARCOAL
 
     # Right Image
-    img_path = 'comparison_loss_curves.png'
+    img_path = os.path.join(BASE_DIR, 'comparison_loss_curves.png')
     if os.path.exists(img_path):
         slide6.shapes.add_picture(img_path, Inches(6.8), Inches(1.8), Inches(6.0), Inches(4.5))
 
