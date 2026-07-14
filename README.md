@@ -1,257 +1,418 @@
-# Adaptive Stabilization Techniques for Ill-Conditioned Problems in ML
 
-**Course**: AIMA 203 – Numerical Methods
+# 🧪 Adaptive Stabilization Techniques for Ill-Conditioned Linear Regression
 
-**Institution**: Kathmandu University, Nepal
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+[![Code Style](<https://img.shields.io/badge/Code%20Style-Black-black.svg>)](https://github.com/psf/black)
 
-**Date**: May 2026
+A comprehensive experimental framework for studying how different optimization algorithms behave on ill-conditioned linear regression problems. This project systematically evaluates convergence properties, numerical stability, and bias-variance tradeoffs across multiple condition numbers.
 
-**Authors**: Kushagra Poudel, Aman Sapkota, Utsab Baral
+## 📋 Table of Contents
 
----
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Project Architecture](#project-architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Output &amp; Artifacts](#output--artifacts)
+- [Experimental Design](#experimental-design)
+- [Methods Compared](#methods-compared)
+- [Results Visualization](#results-visualization)
+- [Technical Implementation](#technical-implementation)
+- [Troubleshooting](#troubleshooting)
 
-## Project Overview
+## 🎯 Overview
 
-Modern machine learning training is essentially **numerical computation**—we solve high-dimensional linear systems, compute matrix factorizations, and run iterative solvers. When the data or the Hessian is ill-conditioned (high condition number `κ`), naive algorithms like Vanilla SGD break down, causing gradient explosions, vanishing updates, and divergent training.
+This project investigates how different optimization algorithms cope with **ill-conditioned** linear regression problems, where the condition number κ (ratio of largest to smallest singular value of the design matrix) varies from well-conditioned (κ=10) to severely ill-conditioned (κ=10⁷). The framework includes:
 
-This project investigates **how ill-conditioning degrades ML performance** and experimentally compares adaptive stabilization techniques (Ridge regularization, Adam optimizer, and Batch Normalization) to restore numerical tractability.
+- **Synthetic data generation** with exact control over condition numbers
+- **Six optimization methods** including vanilla SGD, momentum, Adam, ridge regression, batch normalization, and AdamW
+- **Comprehensive tracking** of convergence, resource usage, and numerical stability
+- **Bias-variance decomposition** across different algorithms
+- **Automated visualization** of all experimental results
 
----
+## ✨ Key Features
 
-## Progress Summary (Current Status)
+- **Exact condition number control**: Synthetic data generation ensures precise condition numbers 【turn0search0】【turn0search3】
+- **Multiple stabilization techniques**: Comparison of classical and modern optimization approaches
+- **Resource monitoring**: Real-time tracking of CPU and memory usage during training
+- **Numerical stability analysis**: Direct comparison of naive vs. stable linear system solves
+- **Comprehensive metrics**: Training loss, test loss, parameter error, eigen-direction errors
+- **Reproducible experiments**: Fixed seeds for data generation and model initialization
 
-All five phases of the project are complete: ill-conditioned data generation, the Vanilla SGD baseline, and the three stabilization techniques (Ridge, Adam, Batch Normalization), with results compiled into slides and a PDF report.
+## 🏗️ Project Architecture
 
-### Phase 1: Generating Ill-Conditioned Data
-
-**Objective**: Create a dataset with severe multicollinearity (`ρ > 0.95`) to artificially induce a high condition number in `XᵀX`.
-
-**Methodology**:
-
-- Generated 200 samples with 10 features.
-- Artificially made feature pairs highly correlated (e.g., `x₁ ≈ 0.95·x₀`).
-- Computed the Gram matrix `G = XᵀX` and its eigenvalue spectrum.
-
-**Governing Formula** — Condition Number:
-
-```
-κ(G) = λ_max(G) / λ_min(G)
-```
-
-where `λ_max` and `λ_min` are the largest and smallest eigenvalues of `G = XᵀX`. A well-conditioned matrix has `κ ≈ 1`; `κ ≫ 1` indicates near-singularity.
-
-**Key Results**:
-
-- **Condition Number**: `κ = 2.04 × 10⁴` (κ >> 1, severely ill-conditioned).
-- Eigenvalues spanned from ~`10⁻⁴` to ~`10⁰` (log-scale spread).
-- Direct inversion `np.linalg.inv(G)` failed numerically, proving the matrix is near-singular.
-
-**Output File**: `eigenvalue_spectrum.png` – shows the wide eigenvalue spread, confirming the numerical instability.
-
-### Phase 2: Vanilla SGD Baseline (Control Experiment)
-
-**Objective**: Train a simple 3-layer MLP on the ill-conditioned data using pure Vanilla SGD (no momentum, no adaptivity) to observe the "broken" behavior.
-
-**Methodology**:
-
-- Used the same dataset from Phase 1.
-- Architecture: 10 → 64 → 64 → 1 (ReLU activations).
-- Optimizer: `SGD(lr=0.001, momentum=0.0)`.
-- Loss: MSE (Mean Squared Error).
-- Epochs: 300.
-
-**Governing Formula** — Vanilla SGD Update Rule:
-
-```
-w_{t+1} = w_t − η · ∇L(w_t)
-```
-
-where `η` is a single, fixed scalar learning rate applied uniformly across all parameter directions. No correction term accounts for per-direction curvature, so steep and flat directions of the loss surface receive identical step sizes.
-
-**Key Results**:
-
-- Loss decreased very slowly: `0.6749 → 0.5198` over 300 epochs.
-- Loss curve showed **oscillations** (especially in the first 50 epochs), indicating that gradients are bouncing in steep directions and crawling in flat ones.
-- Convergence is far from optimal—this confirms that ill-conditioning seriously degrades Vanilla SGD.
-
-**Output File**: `vanilla_sgd_loss.png` – shows slow, oscillating convergence. This is the baseline "control" to beat with stabilization techniques.
-
-### Phase 3: Ridge (L2) Regularization
-
-**Objective**: Add `λI` to the Gram matrix to shift eigenvalues away from zero, reducing `κ` and smoothing the loss landscape.
-
-**Governing Formulas**:
-
-```
-Regularized Loss:   L_ridge(w) = L(w) + (λ/2)·‖w‖²
-
-Regularized Gram:   G' = XᵀX + λI
-
-Shifted Eigenvalues: λᵢ' = λᵢ + λ      for each i
-
-New Condition #:    κ' = (λ_max + λ) / (λ_min + λ)
+```mermaid
+flowchart LR
+    A[Configuration] --> B[Data Generation]
+    B --> C[Training Pipeline]
+    C --> D[Results Aggregation]
+    D --> E[Visualization]
+  
+    subgraph B
+        B1[Synthetic Data<br/>with exact κ]
+        B2[Save to data/]
+    end
+  
+    subgraph C
+        C1[6 Optimization Methods]
+        C2[Multiple init seeds]
+        C3[Resource tracking]
+        C4[Save model weights]
+    end
+  
+    subgraph D
+        D1[Aggregated metrics]
+        D2[Bias-variance decomposition]
+        D3[Pickle results]
+    end
+  
+    subgraph E
+        E1[Convergence curves]
+        E2[Numerical stability]
+        E3[Bias-variance plots]
+        E4[Resource usage]
+    end
 ```
 
-Adding `λ` to every eigenvalue uniformly compresses the ratio between the largest and smallest eigenvalue, lowering `κ'` below the original `κ`. It does **not**, however, rescale individual gradient directions — it only shifts the spectrum.
+## 📦 Installation
 
-**Key Results**:
+### Prerequisites
 
-- Learning rate: `0.001`.
-- Final MSE loss: `0.4812`.
-- Convergence: shifts eigenvalues to stabilize training, but convergence remains restricted relative to adaptive methods.
-- Effect on conditioning: smooths loss contours without correcting step-scale disparities.
+- Python 3.8+
+- PyTorch 2.0+
+- NumPy, SciPy, Matplotlib
+- psutil (for resource monitoring)
 
-### Phase 4: Adam Optimizer
-
-**Objective**: Apply per-parameter adaptive learning rates as a diagonal Hessian preconditioner.
-
-**Governing Formulas**:
-
-```
-First moment (mean):       m_t = β₁·m_{t−1} + (1−β₁)·g_t
-
-Second moment (variance):  v_t = β₂·v_{t−1} + (1−β₂)·g_t²
-
-Bias-corrected moments:    m̂_t = m_t / (1 − β₁ᵗ)
-                           v̂_t = v_t / (1 − β₂ᵗ)
-
-Parameter update:          w_{t+1} = w_t − η · m̂_t / (√v̂_t + ε)
-```
-
-Dividing each coordinate's step by `√v̂_t` (the root of its own running squared-gradient average) rescales every direction individually — large, frequently-updated gradients get smaller steps; small, infrequent gradients get larger steps. This acts as a dynamic **diagonal Hessian preconditioner**, directly neutralizing the ravine-scaling effect of high `κ`.
-
-**Key Results**:
-
-- Learning rate: `0.005`.
-- Final MSE loss: **`0.0048`** — the best result across all configurations.
-- Convergence: extremely rapid (<20 epochs), since dividing updates by the square root of the running average of squared gradients neutralizes ravine scaling.
-
-### Phase 5: Batch Normalization
-
-**Objective**: Rescale activations to bound the Jacobian's singular values and permit higher learning rates.
-
-**Governing Formulas**:
-
-```
-Batch mean:         μ_B = (1/m) Σᵢ xᵢ
-
-Batch variance:     σ_B² = (1/m) Σᵢ (xᵢ − μ_B)²
-
-Normalize:          x̂ᵢ = (xᵢ − μ_B) / √(σ_B² + ε)
-
-Affine transform:   yᵢ = γ·x̂ᵢ + β
-```
-
-where `γ` and `β` are learnable scale/shift parameters. By centering and rescaling activations at every layer, BN bounds the singular values of each layer's Jacobian, which flattens the curvature of the loss surface and permits a larger stable learning rate `η`.
-
-**Key Results**:
-
-| Configuration | Learning Rate | Final MSE Loss | Convergence Behavior |
-| :--- | :---: | :---: | :--- |
-| Batch Normalization (Low) | 0.001 | 0.4501 | Stable updates, but slow step progression. |
-| Batch Normalization (High) | 0.010 | 0.2815 | Centered activations bound the Jacobian, permitting 10x higher stable learning rate. |
-
----
-
-## Full Experimental Comparison
-
-The MLP network (10 → 64 → 64 → 1) was trained for 300 epochs under identical weight initializations for all setups.
-
-| Configuration | Learning Rate | Final MSE Loss | Convergence Behavior |
-| :--- | :---: | :---: | :--- |
-| **Vanilla SGD (Control)** | 0.001 | 0.5198 | Slow and oscillating heavily due to steep ravine walls. |
-| **Ridge Regularization** | 0.001 | 0.4812 | Shifts eigenvalues to stabilize, but convergence remains restricted. |
-| **Batch Normalization (Low)** | 0.001 | 0.4501 | Stable updates, but slow step progression. |
-| **Batch Normalization (High)** | 0.010 | 0.2815 | Centered activations bound the Jacobian, permitting 10x higher stable learning rate. |
-| **Adam Optimizer** | 0.005 | **0.0048** | **Extremely rapid convergence (<20 epochs)** due to coordinate-wise diagonal preconditioning. |
-
-### Key Takeaways
-
-1. **Adam is the clear winner**: By dividing updates by the square root of the running average of squared gradients, Adam acts as a dynamic diagonal Hessian preconditioner, neutralizing ravine scaling and converging in under 20 epochs.
-2. **Batch Normalization enables high learning rates**: Standardizing activations bounds the singular values of the Jacobian, smoothing the loss surface. This allows scaling the learning rate up to `0.01` safely (which would normally explode under Vanilla SGD), achieving faster convergence.
-3. **Ridge Regularization stabilizes computation**: Adding L2 weight decay shifts eigenvalues (`κ' = (λ_max + λ) / (λ_min + λ)`), smoothing loss contours but not correcting step scale disparities.
-
----
-
-## Formula Quick Reference
-
-| Technique | Core Formula |
-| :--- | :--- |
-| Condition Number | `κ(G) = λ_max(G) / λ_min(G)` |
-| Vanilla SGD | `w_{t+1} = w_t − η·∇L(w_t)` |
-| Ridge (L2) | `L_ridge(w) = L(w) + (λ/2)‖w‖²` , `κ' = (λ_max+λ)/(λ_min+λ)` |
-| Adam | `w_{t+1} = w_t − η·m̂_t / (√v̂_t + ε)` |
-| Batch Normalization | `x̂ᵢ = (xᵢ − μ_B) / √(σ_B² + ε)` , `yᵢ = γ·x̂ᵢ + β` |
-
----
-
-## Visual Results
-
-### 1. Eigenvalue Spectrum of `XᵀX`
-
-![Eigenvalue Spectrum](eigenvalue_spectrum.png)
-_The eigenvalues span several orders of magnitude. The ratio (max/min) gives κ ≈ 2.04×10⁴, proving the system is ill-conditioned._
-
-### 2. Vanilla SGD Loss Curve
-
-![Vanilla SGD Loss](vanilla_sgd_loss.png)
-_The loss decreases slowly and oscillates. This demonstrates that naive SGD cannot efficiently navigate the ill-conditioned landscape._
-
-### 3. Comparison of All Loss Curves
-
-![Comparison Loss Curves](comparison_loss_curves.png)
-_High-resolution plot overlaying loss curves on a log scale, comparing all experimental runs (SGD, Ridge, Adam, BN) — matching Slide 11 of the presentation._
-
----
-
-## Project Files
-
-| File Path | Description |
-| :--- | :--- |
-| **`generate_results.py`** | Script that runs all training benchmarks, sets global seeds, saves results, and generates the comparison loss plot. |
-| **`generate_slides.py`** | Programmatically generates the 7-slide progress report PowerPoint deck (`adaptive_stabilization_progress.pptx`). |
-| **`generate_pdf_report.py`** | Programmatically compiles the publication-quality, 6-page project progress report (`adaptive_stabilization_report.pdf`). |
-| **`eigenvalue_spectrum.png`** | Eigenvalue spectrum of `XᵀX`, confirming ill-conditioning. |
-| **`vanilla_sgd_loss.png`** | Vanilla SGD baseline loss curve. |
-| **`comparison_loss_curves.png`** | High-resolution plot overlaying loss curves on a log-scale to compare all experimental runs. |
-| **`experimental_results.npz`** | Compressed NumPy array data containing loss histories for future analysis. |
-
----
-
-## How to Run the Scripts
-
-Ensure you have the required dependencies installed:
+### Setup
 
 ```bash
-pip install torch matplotlib python-pptx reportlab numpy
+# Clone the repository
+git clone https://github.com/UB90/AdaptiveStabilization.git
+cd AdaptiveStabilization
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### 1. Re-run Training Benchmarks
+### Dependencies
 
-To run the training loops and generate the comparison loss plot:
+```
+torch>=2.0.0
+numpy>=1.21.0
+scipy>=1.7.0
+matplotlib>=3.4.0
+psutil>=5.8.0
+pickle-mixin>=1.0.0  # For saving/loading results
+```
+
+## 🚀 Usage
+
+### Quick Start
 
 ```bash
-python generate_results.py
+# Run the complete experiment
+python train.py
+
+# Generate visualizations
+python plot_results.py
 ```
 
-This outputs `experimental_results.npz` and `comparison_loss_curves.png` in the local directory.
+### Detailed Execution
 
-### 2. Generate Presentation Slides
+<details>
+<summary>🔧 Advanced Configuration</summary>
 
-To compile the widescreen slide deck:
+Edit `config.py` to customize experiments:
+
+```python
+# Modify condition numbers
+DATASETS = [
+    {"name": "well_conditioned", "kappa": 1e1,  "label": r"$\kappa=10$"},
+    {"name": "moderate",         "kappa": 1e4,  "label": r"$\kappa=10^4$"},
+    {"name": "severe",           "kappa": 1e7,  "label": r"$\kappa=10^7$"},
+]
+
+# Adjust sample size and dimensions
+N_SAMPLES      = 1000  # Training samples
+N_TEST_SAMPLES = 200   # Test samples
+N_FEATURES     = 50    # Problem dimensionality
+
+# Change optimization methods
+METHODS = [
+    "vanilla_sgd", "momentum_sgd", "adam", 
+    "ridge_l2", "batchnorm_linear", "adamw"
+]
+
+# Modify training duration
+EPOCHS_PER_KAPPA = 0.5  # Scales with condition number
+EPOCHS_FLOOR     = 1000
+EPOCHS_CAP       = 50_000  # Prevent multi-day runs
+```
+
+</details>
+
+### Running Specific Components
 
 ```bash
-python generate_slides.py
+# Generate only datasets
+python -c "import data_generator; data_generator.generate_all_datasets()"
+
+# Train specific method
+python -c "
+import config
+import data_generator
+from optimizers import train_method
+
+datasets = data_generator.generate_all_datasets()
+for ds_name, ds in datasets.items():
+    history, model = train_method('adam', ds, init_seed=0)
+    print(f'{ds_name}: Final loss = {history[\"loss\"][-1]:.4e}')
+"
+
+# Load and inspect saved results
+python -c "
+import pickle
+import config
+
+with open(f'{config.RESULTS_DIR}/results.pkl', 'rb') as f:
+    data = pickle.load(f)
+  
+print(f'Methods: {data[\"config\"][\"methods\"]}')
+print(f'Datasets: {[d[\"name\"] for d in data[\"config\"][\"datasets\"]]}')
+"
 ```
 
-This saves `adaptive_stabilization_progress.pptx` in the parent directory (`../`).
+## 💾 Output & Artifacts
 
-### 3. Generate PDF Report
+### ✅ Yes, this project saves everything!
 
-To compile the multi-page formal report:
+The project automatically saves the following artifacts:
 
-```bash
-python generate_pdf_report.py
+| Artifact Type           | Location                    | Format         | Description                                     |
+| ----------------------- | --------------------------- | -------------- | ----------------------------------------------- |
+| **Datasets**      | `data/`                   | `.pt` files  | Synthetic datasets with exact condition numbers |
+| **Model Weights** | `weights/{dataset_name}/` | `.pth` files | Trained model parameters for each run           |
+| **Results**       | `results/results.pkl`     | Pickle file    | Complete experimental results                   |
+| **Plots**         | `plots/`                  | PNG files      | All visualizations                              |
+
+### Directory Structure After Execution
+
+```
+adaptive-stabilization/
+├── data/
+│   ├── well_conditioned.pt
+│   ├── moderate.pt
+│   └── severe.pt
+├── weights/
+│   ├── well_conditioned/
+│   │   ├── vanilla_sgd_seed0.pth
+│   │   ├── vanilla_sgd_seed1.pth
+│   │   └── ...
+│   ├── moderate/
+│   │   └── ...
+│   └── severe/
+│       └── ...
+├── results/
+│   └── results.pkl
+├── plots/
+│   ├── 1_convergence.png
+│   ├── 2_numerical_stability.png
+│   ├── 3_bias_variance.png
+│   └── 4_resource_usage.png
+└── (source code files)
 ```
 
-This saves `adaptive_stabilization_report.pdf` in the parent directory (`../`).
+### What Gets Saved?
+
+<details>
+<summary>📖 Detailed Save Mechanisms</summary>
+
+1. **Datasets** (`data_generator.py`):
+
+   ```python
+   torch.save(ds, os.path.join(config.DATA_DIR, f"{spec['name']}.pt"))
+   ```
+
+   Saves complete dataset including: X_train, y_train, X_test, y_test, theta_star, V, sigma, condition numbers
+2. **Model Weights** (`models.py`):
+
+   ```python
+   def save_model(model, path):
+       os.makedirs(os.path.dirname(path), exist_ok=True)
+       torch.save(model.state_dict(), path)
+   ```
+
+   Saves model parameters using PyTorch's recommended `state_dict` approach 【turn0search5】【turn0search7】
+3. **Results** (`train.py`):
+
+   ```python
+   with open(out_path, "wb") as f:
+       pickle.dump({
+           "config": {...},
+           "dataset_meta": {...},
+           "bias_variance": {...},
+           "results": results,
+       }, f)
+   ```
+
+   Saves all experimental results including training histories, final parameters, resource usage
+
+</details>
+
+## 🧪 Experimental Design
+
+### Condition Numbers Tested
+
+| Name             | κ   | Description                                           |
+| ---------------- | ---- | ----------------------------------------------------- |
+| Well-conditioned | 10   | Easy problem, fast convergence expected               |
+| Moderate         | 10⁴ | Moderately ill-conditioned, some methods may struggle |
+| Severe           | 10⁷ | Severely ill-conditioned, tests numerical stability   |
+
+### Metrics Tracked
+
+- **Training Metrics**: Loss, gradient norm, parameter error
+- **Test Metrics**: Test loss, generalization gap
+- **Eigen-direction Errors**: Errors in top (steep) and bottom (flat) eigen-directions
+- **Resource Usage**: CPU time, memory consumption, wall clock time
+- **Bias-Variance Decomposition**: For each method across datasets
+
+## 📊 Methods Compared
+
+| Method                        | Description                                 | Key Hyperparameter                      |
+| ----------------------------- | ------------------------------------------- | --------------------------------------- |
+| **Vanilla SGD**         | Standard stochastic gradient descent        | Learning rate:`0.9 * 2n/σ²_max`     |
+| **Momentum SGD**        | SGD with momentum                           | β:`(√κ - 1)/(√κ + 1))²`         |
+| **Adam**                | Adaptive moment estimation                  | Learning rate: 0.1 (scale-invariant)    |
+| **Ridge L2**            | SGD with L2 regularization                  | λ:`σ²_max(1 - √κ/κ)/(√κ - 1)` |
+| **BatchNorm-on-Linear** | Batch normalization applied to linear model | Learning rate: 0.1                      |
+| **AdamW**               | Adam with decoupled weight decay            | Weight decay: Same as Ridge λ          |
+
+## 📈 Results Visualization
+
+The project generates four comprehensive visualization sets:
+
+### 1. Convergence Grid (`1_convergence.png`)
+
+- 4×3 grid of plots (4 metrics × 3 condition numbers)
+- Shows training/test loss, parameter error, eigen-direction errors
+- Includes standard deviation bands across initialization seeds
+
+### 2. Numerical Stability (`2_numerical_stability.png`)
+
+- Compares naive inverse vs. pseudoinverse solutions
+- Shows relative error as function of condition number
+- Demonstrates importance of stable numerical methods 【turn0search4】
+
+### 3. Bias-Variance Decomposition (`3_bias_variance.png`)
+
+- Bar plots showing bias² and variance for each method
+- Separate panels for each condition number
+- Logarithmic scale for better visualization
+
+### 4. Resource Usage (`4_resource_usage.png`)
+
+- Wall clock time and memory usage vs. condition number
+- Separate lines for each optimization method
+- Helps identify computational efficiency tradeoffs
+
+## 🔧 Technical Implementation
+
+### Data Generation Strategy
+
+The synthetic data generation ensures exact condition numbers through:
+
+1. **Singular value specification**: `σ_max = 1.0`, `σ_min = σ_max/√κ`
+2. **Orthogonal matrices**: Using QR decomposition for random orthogonal matrices
+3. **Verification**: Actual condition number checked against target
+
+```python
+G = X_np.T @ X_np
+kappa_actual = float(np.linalg.cond(G))
+if abs(kappa_actual - kappa) / kappa > 1e-6:
+    raise RuntimeError("κ sanity check failed.")
+```
+
+### Numerical Stability Considerations
+
+- **Naive solution**: `θ_naive = (XᵀX)⁻¹Xᵀy` - unstable for high κ
+- **Stable solution**: `θ_pinv = X⁺y` (pseudoinverse) - numerically stable
+- **Regularization**: Ridge regression adds λI to improve conditioning 【turn0search4】
+
+### Resource Monitoring
+
+The project uses `psutil` for accurate resource tracking 【turn0search12】【turn0search14】:
+
+```python
+process = psutil.Process(os.getpid())
+mem_before = process.memory_info().rss / (1024 * 1024)
+# ... training code ...
+cpu_usage = process.cpu_percent(interval=None)
+mem_after = process.memory_info().rss / (1024 * 1024)
+```
+
+## ❓ Troubleshooting
+
+<details>
+<summary>🔧 Common Issues</summary>
+
+### Q: Training takes too long for severe condition numbers
+
+**A**: Reduce `EPOCHS_CAP` in `config.py` or use fewer initialization seeds.
+
+### Q: Out of memory errors
+
+**A**: Reduce `N_SAMPLES` or `N_FEATURES` in `config.py`.
+
+### Q: Divergence errors
+
+**A**: This is expected for some methods at high condition numbers. The framework automatically detects and handles divergence.
+
+### Q: How to resume interrupted training?
+
+**A**: The framework doesn't currently support resuming. However, you can modify `train.py` to check for existing results and skip completed runs.
+
+### Q: Different Python/PyTorch versions
+
+**A**: The code is tested with Python 3.8+ and PyTorch 2.0+. Minor adjustments may be needed for older versions.
+
+</details>
+
+## 📚 Citation
+
+If you use this code in your research, please cite:
+
+```bibtex
+@misc{adaptive_stabilization_2026,
+  title={Adaptive Stabilization Techniques for Ill-Conditioned Linear Regression},
+  author={Utsab Baral, Aman Sapkota, Kushagra Poudel},
+  year={2026},
+  publisher={GitHub},
+  url={https://github.com/UB90/AdaptiveStabilization}
+}
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- PyTorch team for the excellent deep learning framework
+- psutil developers for cross-platform system monitoring
+- Numerical linear algebra community for insights on condition numbers and stability
+
+---
+
+**Status**: Active development
+**Last Updated**: 2026-07-14
+**Version**: 2.0.0
+
+> **Note**: This README provides comprehensive documentation for the adaptive stabilization project. For specific implementation details, refer to the source code files. The project saves all datasets, model weights, and results automatically as described in the Output & Artifacts section.
