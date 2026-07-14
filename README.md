@@ -67,7 +67,7 @@ flowchart TD
         LoopSeed[<b>Loop over 5 Init Seeds</b><br>Ensures statistical robustness<br>for Bias/Variance computation]:::phaseBox
         Train[<b>optimizers.py</b><br>Execute training loop<br>Track Train Loss, Test Loss, Param Error<br>Track Eigen-direction Errors]:::phaseBox
         Track[<b>psutil Monitoring</b><br>Record Wall-Clock Time<br>Track CPU Percentage<br>Track RAM Usage in MB]:::phaseBox
-        SaveWeights[<b>Save to weights/</b><br>torch.save(model.state_dict())<br>Format: dataset/method_seedN.pth]:::saveBox
+        SaveWeights[<b>Save to weights/</b><br>torch.save&#40;model.state_dict&#40;&#41;&#41;<br>Format: dataset/method_seedN.pth]:::saveBox
         LoopInit --> LoopMethod --> LoopSeed --> Train --> Track --> SaveWeights
     end
 
@@ -97,6 +97,7 @@ flowchart TD
     
     End([<b>EXPERIMENT COMPLETE</b><br>Check ./plots directory]):::largeBox
     Phase4 --> End
+
 ```
 
 ## 📦 Installation
