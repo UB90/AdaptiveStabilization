@@ -45,36 +45,58 @@ This project investigates how different optimization algorithms cope with **ill-
 ## 🏗️ Project Architecture
 
 ```mermaid
-flowchart LR
-    A[Configuration] --> B[Data Generation]
-    B --> C[Training Pipeline]
-    C --> D[Results Aggregation]
-    D --> E[Visualization]
-  
-    subgraph B
-        B1[Synthetic Data<br/>with exact κ]
-        B2[Save to data/]
+flowchart TD
+    classDef largeBox fill:#f9f9f9,stroke:#333,stroke-width:2px,padding:20px,font-size:14px;
+    classDef phaseBox fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,padding:15px,font-size:13px;
+    classDef saveBox fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,padding:15px,font-size:13px;
+
+    Start([<b>START EXPERIMENT</b><br>Run: python train.py]):::largeBox
+
+    subgraph Phase1 [Phase 1: Configuration & Data Generation]
+        direction TB
+        Config[<b>config.py</b><br>Define datasets: κ = 10, 10^4, 10^7<br>Set N_SAMPLES = 1000, N_FEATURES = 50<br>Define methods and hyperparameters]:::phaseBox
+        DataGen[<b>data_generator.py</b><br>Generate synthetic data via SVD/QR<br>Ensure exact condition numbers<br>Compute ground truth theta_star]:::phaseBox
+        SaveData[<b>Save to data/*.pt</b><br>Persist X_train, y_train, X_test, y_test<br>Save V, sigma, theta_star]:::saveBox
+        Config --> DataGen --> SaveData
     end
-  
-    subgraph C
-        C1[6 Optimization Methods]
-        C2[Multiple init seeds]
-        C3[Resource tracking]
-        C4[Save model weights]
+
+    subgraph Phase2 [Phase 2: Training & Resource Tracking]
+        direction TB
+        LoopInit[<b>Loop over Datasets</b><br>well_conditioned, moderate, severe]:::phaseBox
+        LoopMethod[<b>Loop over 6 Methods</b><br>vanilla_sgd, momentum, adam,<br>ridge_l2, batchnorm_linear, adamw]:::phaseBox
+        LoopSeed[<b>Loop over 5 Init Seeds</b><br>Ensures statistical robustness<br>for Bias/Variance computation]:::phaseBox
+        Train[<b>optimizers.py</b><br>Execute training loop<br>Track Train Loss, Test Loss, Param Error<br>Track Eigen-direction Errors]:::phaseBox
+        Track[<b>psutil Monitoring</b><br>Record Wall-Clock Time<br>Track CPU Percentage<br>Track RAM Usage in MB]:::phaseBox
+        SaveWeights[<b>Save to weights/</b><br>torch.save(model.state_dict())<br>Format: dataset/method_seedN.pth]:::saveBox
+        LoopInit --> LoopMethod --> LoopSeed --> Train --> Track --> SaveWeights
     end
-  
-    subgraph D
-        D1[Aggregated metrics]
-        D2[Bias-variance decomposition]
-        D3[Pickle results]
+
+    subgraph Phase3 [Phase 3: Analytics & Aggregation]
+        direction TB
+        BiasVar[<b>Compute Bias & Variance</b><br>Aggregate final theta across 5 seeds<br>Calculate Bias² and Variance]:::phaseBox
+        NumStab[<b>Numerical Stability Baseline</b><br>Naive Solve: Inverse of Normal Equations<br>Stable Solve: Pseudoinverse]:::phaseBox
+        SaveResults[<b>Save to results/results.pkl</b><br>Pickle dump all histories, metrics,<br>and resource usage data]:::saveBox
+        BiasVar --> SaveResults
+        NumStab --> SaveResults
     end
-  
-    subgraph E
-        E1[Convergence curves]
-        E2[Numerical stability]
-        E3[Bias-variance plots]
-        E4[Resource usage]
+
+    subgraph Phase4 [Phase 4: Visualization & Plotting]
+        direction TB
+        Plot[<b>plot_results.py</b><br>Load results.pkl<br>Generate 4 comprehensive plot sets]:::phaseBox
+        Out1[<b>1_convergence.png</b><br>4x3 Grid: Train/Test Loss,<br>Param Err, Eigen Err vs Epochs]:::phaseBox
+        Out2[<b>2_numerical_stability.png</b><br>Direct Solves Error vs κ]:::phaseBox
+        Out3[<b>3_bias_variance.png</b><br>Method Comparison across κ]:::phaseBox
+        Out4[<b>4_resource_usage.png</b><br>Time and RAM vs κ]:::phaseBox
+        Plot --> Out1 & Out2 & Out3 & Out4
     end
+
+    Start --> Phase1
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase3 --> Phase4
+    
+    End([<b>EXPERIMENT COMPLETE</b><br>Check ./plots directory]):::largeBox
+    Phase4 --> End
 ```
 
 ## 📦 Installation
