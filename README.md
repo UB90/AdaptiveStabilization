@@ -3,7 +3,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red.svg)](https://pytorch.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 [![Code Style](<https://img.shields.io/badge/Code%20Style-Black-black.svg>)](https://github.com/psf/black)
 
@@ -411,9 +410,6 @@ If you use this code in your research, please cite:
 }
 ```
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
