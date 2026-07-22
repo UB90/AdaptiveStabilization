@@ -13,6 +13,7 @@ import data_generator
 from optimizers import train_method
 import models
 
+
 def main():
     os.makedirs(config.RESULTS_DIR, exist_ok=True)
     os.makedirs(config.WEIGHTS_DIR, exist_ok=True)
@@ -64,7 +65,7 @@ def main():
                 final_theta = model.get_theta().cpu().numpy()
                 
                 w_path = os.path.join(config.WEIGHTS_DIR, ds_name, f"{method}_seed{init_seed}.pth")
-                models.save_model(model, w_path)
+                models.save_model(model, w_path)  # creates subdirectory automatically
                 
                 results.append({
                     "method": method, "dataset_name": ds_name, "kappa": kappa,
@@ -85,12 +86,23 @@ def main():
         theta_star = datasets[ds_name]["theta_star"].cpu().numpy()
         bias_variance[ds_name] = {}
         for method in config.METHODS:
-            final_thetas = [r["final_theta"] for r in results if r["dataset_name"] == ds_name and r["method"] == method]
-            thetas_np = np.array(final_thetas)
-            mean_theta = thetas_np.mean(axis=0)
-            bias = np.linalg.norm(mean_theta - theta_star)
-            variance = np.trace(np.cov(thetas_np, rowvar=False))
-            bias_variance[ds_name][method] = {"bias_sq": bias**2, "variance": variance}
+            # ---------- FIX: filter out diverged runs and non-finite values ----------
+            final_thetas = []
+            for r in results:
+                if (r["dataset_name"] == ds_name and r["method"] == method
+                        and not r["history"]["diverged"]
+                        and np.all(np.isfinite(r["final_theta"]))):
+                    final_thetas.append(r["final_theta"])
+            # -----------------------------------------------------------------------
+            if final_thetas:
+                thetas_np = np.array(final_thetas)
+                mean_theta = thetas_np.mean(axis=0)
+                bias = np.linalg.norm(mean_theta - theta_star)
+                variance = np.trace(np.cov(thetas_np, rowvar=False))
+                bias_variance[ds_name][method] = {"bias_sq": bias**2, "variance": variance}
+            else:
+                bias_variance[ds_name][method] = {"bias_sq": np.nan, "variance": np.nan}
+                print(f"  Warning: No valid runs for {ds_name} / {method}")
 
     out_path = os.path.join(config.RESULTS_DIR, "results.pkl")
     with open(out_path, "wb") as f:
