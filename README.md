@@ -202,7 +202,6 @@ print(f'Datasets: {[d[\"name\"] for d in data[\"config\"][\"datasets\"]]}')
 
 ## 💾 Output & Artifacts
 
-### ✅ Yes, this project saves everything!
 
 The project automatically saves the following artifacts:
 
