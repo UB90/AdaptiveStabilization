@@ -49,7 +49,7 @@ flowchart LR
 | [optimizers.py](optimizers.py) | 157 | 6 training loops with metric tracking |
 | [train.py](train.py) | 126 | Main orchestrator: data gen → training → bias/variance → save |
 | [plot_results.py](plot_results.py) | 148 | 4 core publication-quality plots |
-| [plot_advanced.py](file:///home/tsalbr/My%20Things/Projects/AdaptiveStabilization/plot_advanced.py) | 245 | Multi-level drill-down plots |
+| [plot_advanced.py](plot_advanced.py) | 245 | Multi-level drill-down plots |
 
 ---
 
