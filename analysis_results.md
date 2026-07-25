@@ -1,7 +1,9 @@
 # 🔬 AdaptiveStabilization — Complete Project Analysis
 
 **Authors:** Utsab Baral, Aman Sapkota, Kushagra Poudel
+
 **Status:** Completed experiment with 90 training runs
+
 **Core Question:** *Does minimizing training loss guarantee recovering the true model parameters under ill-conditioning?*
 
 ---
